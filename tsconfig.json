@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "es7",
+      "dom"
+    ],
+    "typeRoots" : [
+      "./node_modules/@types"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "experimentalDecorators":true,
+    "emitDecoratorMetadata": true,
+    "sourceMap": true,
+    "declaration": false,
+    "allowJs": true,
+    "noEmit": true,
+    "strictNullChecks": false,
+    "importHelpers": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/assets"
+  ],
+  "awesomeTypescriptLoaderOptions": {
+    "forkChecker": true,
+    "useWebpackText": true
+  },
+  "compileOnSave": false,
+  "buildOnSave": false
+}
