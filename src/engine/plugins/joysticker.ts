@@ -7,35 +7,41 @@ export const DIRECTION_CHANGED = 'DIRECTION_CHANGED';
 export const STICKER_DOWN_CHANGED = 'STICKER_DOWN_CHANGED';
 export const STICKER_MOVE = 'STICKER_MOVE';
 
+export interface JoystickerState {
+  isDown?: boolean;
+  angle?: number;
+  direction?: number;
+  delta?: number;
+  speed?: {
+    x: number;
+    y: number;
+  };
+}
+
 export class Joysticker extends Phaser.Plugin {
 
   private input: Phaser.Input;
   private initialPoint: Phaser.Point;
   private stickerHolder: Phaser.Sprite;
   private sticker: Phaser.Sprite;
-  private directionCounts: number;
-  private angles: number[];
-  private _direction: number = -1;
-  private _isDown = false;
+
+  private _currentState: JoystickerState;
+  private _previousState: JoystickerState;
+
   private settings = {
     // max distance from itial touch
     maxDistanceInPixels: 50,
     singleDirection: false
   };
+  
   public emitter = new EventEmitter();
-  public angle = 0;
-  public speed = {
-    x: 0,
-    y: 0
-  };
-  public delta = 0;
 
   public get isDown() {
-    return this._isDown;
+    return this._currentState && this._currentState.isDown;
   }
 
-  public get direction() {
-    return this._direction;
+  public get currentState() {
+    return this._currentState;
   }
 
   constructor(game, parent) {
@@ -52,7 +58,6 @@ export class Joysticker extends Phaser.Plugin {
       sprite.anchor.set(0.5);
       sprite.fixedToCamera = true;
     });
-    this.updateDirections(8);
   }
 
   public inputEnable() {
@@ -69,23 +74,36 @@ export class Joysticker extends Phaser.Plugin {
     this.initialPoint = point;
     this.stickerHolder.cameraOffset.x = this.initialPoint.x;
     this.stickerHolder.cameraOffset.y = this.initialPoint.y;
-    this.sticker.cameraOffset.x = this.initialPoint.x;
-    this.sticker.cameraOffset.y = this.initialPoint.y;
+    this.restore();
 
     // this.sticker.input.boundsRect = new Phaser.Rectangle(this.initialPoint.x - 70, this.initialPoint.y - 70, 70, 70);
   }
 
-  private clearData() {
-    this._direction = -1;
+  private restore() {
+    this._savePreviousState();
 
-    this.speed.x = 0;
-    this.speed.y = 0;
+    this._currentState = {
+      direction: -1,
+      speed: {
+        x: 0,
+        y: 0,
+      },
+      delta: 0,
+      angle: 0,
+      isDown: false,
+    };
 
+    // adjuct pointer position
     this.sticker.cameraOffset.x = this.initialPoint.x;
     this.sticker.cameraOffset.y = this.initialPoint.y;
-    this.delta = 0;
-    this.angle = 0;
-    this._isDown = false;
+  }
+
+  private _savePreviousState() {
+    if (this._currentState) {
+      this._previousState = { ... this._currentState };
+    } else {
+      this._previousState = null;
+    }
   }
 
   private inputDisable() {
@@ -94,11 +112,12 @@ export class Joysticker extends Phaser.Plugin {
   }
 
   private dragStart() {
+    this._savePreviousState();
     this.sticker.bringToTop();
     this.sticker.cameraOffset.x = this.input.worldX;
     this.sticker.cameraOffset.y = this.input.worldY;
-    this._isDown = true;
-    this.emitter.emit(STICKER_DOWN_CHANGED, true);
+    this._currentState.isDown = true;
+    this.emitter.emit(STICKER_DOWN_CHANGED, true, this._previousState);
   }
 
   private dragMove(pointer) {
@@ -114,48 +133,33 @@ export class Joysticker extends Phaser.Plugin {
       };
       this.sticker.cameraOffset.x = stickerPosition.x;
       this.sticker.cameraOffset.y = stickerPosition.y;
-      this.delta = MAX_DELTA;
+      this._currentState.delta = 1;
     } else {
       this.sticker.cameraOffset.x = this.input.x;
       this.sticker.cameraOffset.y = this.input.y;
-      this.delta = distance;
+      this._currentState.delta = distance / MAX_DELTA;
     }
     this.setDirection(angle);
     this.emitter.emit(STICKER_MOVE, this);
   }
 
   private dragStop() {
-    this.clearData();
-    this.emitter.emit(STICKER_DOWN_CHANGED, false);
+    this.restore();
+    this.emitter.emit(STICKER_DOWN_CHANGED, false, this._previousState);
   }
 
   private empty() {
   }
 
-  private updateDirections(directionCounts: number) {
-    this.angles = [];
-    this.directionCounts = directionCounts;
-    for (let i = 0; i < directionCounts; i++){
-      this.angles.push(2 * Math.PI * i / directionCounts);
-    }
-  }
-
   private setDirection(angle) {
     angle = angle < 0 ? (Math.PI * 2 + angle) : angle;
-    let index = Math.round(angle / (Math.PI * 2 / this.directionCounts));
-    index = index >= this.directionCounts ? 0 : index;
-    angle = this.angles[index];
-    this.speed.x = Math.cos(angle);
-    this.speed.y = Math.sin(angle);
+    this._currentState.speed = {
+      x: Math.cos(angle),
+      y: Math.sin(angle)
 
-    if (this._direction != index) {
-      this._direction = index;
-      this.emitter.emit(DIRECTION_CHANGED, index);
-    }
-    
-    // angle = angle + Math.PI / 2;
-    // angle = angle > Math.PI * 2 ? angle - Math.PI * 2 : angle;
-    this.angle = angle;
-    console.log(this.angle);
+    };
+
+    this.emitter.emit(DIRECTION_CHANGED);;
+    this._currentState.angle = angle;
   }
 }

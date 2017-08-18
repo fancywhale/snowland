@@ -22,8 +22,7 @@ export class BootState extends Phaser.State {
       this.game.load.image(key, RESOURCES.images[key]);
     });
     this._loadTile();
-    this.game.load.atlas('sprite.player', 'assets/images/sprites/player.png', 'assets/images/sprites/player.json');
-    // this._loadSprites();
+    this._loadSprites();
   }
 
   private _loadTile() {
@@ -41,7 +40,7 @@ export class BootState extends Phaser.State {
     Object.keys(RESOURCES.sprites).forEach(key => {
       let name = this._buildKey('sprite', key);
       let data = RESOURCES.sprites[key];
-      this.game.load.spritesheet(name, data.source, data.width, data.height, data.count);
+      this.game.load.atlas(name, data.source, data.json);
     });
   }
 

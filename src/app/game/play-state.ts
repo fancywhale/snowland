@@ -7,18 +7,22 @@ export class PlayState extends Phaser.State {
   private _stickers: Joysticker[];
   private _player: Player;
   private _bullets: any[];
+  private _map: Phaser.Tilemap;
+  private _layer: Phaser.TilemapLayer;
 
   public get stickers() {
     return this._stickers;
   }
 
   public preload() {
+    this.game.time.advancedTiming = true;
   }
   
   public create() {
     let map = this.game.add.tilemap('tile.iceland');
     map.addTilesetImage('snow_ground', 'tile.iceland.snow_ground');
     map.addTilesetImage('ice', 'tile.iceland.ice');
+    map.setCollisionBetween(1025, 2048);
     let layer = map.createLayer('iceland');
     layer.resizeWorld();
 
@@ -28,10 +32,19 @@ export class PlayState extends Phaser.State {
     this._player = Player.factory(this.game, this.game.world.centerX, this.game.world.centerY);
     this._player.isMe = true;
     this.camera.follow(this._player.sprite);
+    this._map = map;
+    this._layer = layer;
+
+    this.add.weapon()
   }
 
   public update() {
     this._player.update();
+    // this.game.physics.arcade.collide(this._player.sprite, this._layer);
+  }
+
+  public render() {
+    this.game.debug.text(this.game.time.fps.toLocaleString() || '--', 2, 14, "#00ff00");  
   }
 
   private _initStickers() {
@@ -42,8 +55,8 @@ export class PlayState extends Phaser.State {
     
     this._stickers = stickPos.map(pos => {
       let sticker = this.game.plugins.add(Joysticker);
-      sticker.inputEnable();
       sticker.setInitialPoint(pos);
+      sticker.inputEnable();
       return sticker;
     });
   }
